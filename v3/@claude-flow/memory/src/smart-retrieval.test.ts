@@ -272,3 +272,53 @@ describe('smartSearch — stats reporting', () => {
     expect(stats.durationMs).toBeGreaterThanOrEqual(0);
   });
 });
+
+describe('smartSearch — concurrent variant fan-out (dream-cycle 2026-08-13 candidate)', () => {
+  it('runs variant queries concurrently instead of one-at-a-time', async () => {
+    const perCallDelayMs = 40;
+    const search: SearchFn = async ({ query }) => {
+      await new Promise((resolve) => setTimeout(resolve, perCallDelayMs));
+      return { results: [makeCandidate({ id: query, content: query })] };
+    };
+
+    const start = Date.now();
+    const { stats } = await smartSearch(search, {
+      query: 'alpha beta gamma',
+      diversityMMR: false,
+      sessionDiversity: false,
+      recencyBoost: false,
+    });
+    const elapsed = Date.now() - start;
+
+    // A sequential for-await loop takes roughly variantCount * perCallDelayMs.
+    // Concurrent fan-out should take roughly one perCallDelayMs regardless of
+    // variant count. Assert well under 2x a single call's delay — a loose
+    // bound that tolerates CI jitter but still fails hard on a regression
+    // back to sequential awaiting (which would take >=3x for 3 variants).
+    expect(stats.variantCount).toBeGreaterThanOrEqual(2);
+    expect(elapsed).toBeLessThan(perCallDelayMs * 2);
+  });
+
+  it('preserves variant order in the fused results regardless of per-call resolution order', async () => {
+    // The first variant resolves slowest, the rest resolve fastest. RRF
+    // fusion is a stable sort over equal scores, so if Promise.all-based
+    // fan-out preserves input order (not completion order) the fused
+    // result order must still match the original variants array.
+    const search: SearchFn = async ({ query }) => {
+      const delay = query.startsWith('slow') ? 30 : 5;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return { results: [makeCandidate({ id: query, content: query, score: 0.9 })] };
+    };
+
+    const { results, stats } = await smartSearch(search, {
+      query: 'whatever',
+      queryExpansions: () => ['slow-variant', 'fast-variant-a', 'fast-variant-b'],
+      diversityMMR: false,
+      sessionDiversity: false,
+      recencyBoost: false,
+    });
+
+    expect(stats.variants).toEqual(['slow-variant', 'fast-variant-a', 'fast-variant-b']);
+    expect(results.map((r) => r.id)).toEqual(['slow-variant', 'fast-variant-a', 'fast-variant-b']);
+  });
+});
