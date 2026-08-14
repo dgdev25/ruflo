@@ -101,6 +101,10 @@ LangGraph v1.2.10, AutoGen v0.4+, CrewAI, OpenAI Agents SDK (agent-count mechani
 Qdrant/Weaviate/Milvus/LanceDB not directly relevant to tonight's surface (covered by
 2026-08-13's memory-surface cycle instead).
 
+## 12b. Pull Request
+
+https://github.com/dgdev25/ruflo/pull/2 (draft, open, human review required)
+
 ## 13. Gist
 
 Published as a committed repo file (no gist-creation MCP tool available this session, same
