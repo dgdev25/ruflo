@@ -686,13 +686,40 @@ function suggestAgentsForFile(filePath: string): string[] {
   return AGENT_PATTERNS[ext] || ['coder', 'architect'];
 }
 
-function suggestAgentsForTask(task: string): { agents: string[]; confidence: number } {
+// Roles that must never be discounted away by the low-complexity agent-count
+// gate below — dropping them on a security-flavored task would trade a real
+// safety review for a token saving, which is not an acceptable substitution.
+const COMPLEXITY_DISCOUNT_PROTECTED_AGENTS = new Set(['security-architect', 'security-auditor']);
+
+// Dream Cycle 2026-08-14 (swarm surface): the `complexity` bucket that
+// hooksPreTask already computes from the task description was previously
+// dead for agent-count purposes — every KEYWORD_PATTERNS entry and the
+// fallback path returned 2-3 agents regardless of whether the task was
+// "fix a typo" or "fix a cross-cutting auth vulnerability". This discounts
+// the recommendation to a single top agent for low-complexity tasks only,
+// unless the matched agents include a safety-relevant role. medium/high are
+// left untouched (regression invariant from ADR-333 / this cycle's frozen
+// hypothesis: never remove agents outside the low bucket).
+function applyComplexityDiscount(
+  result: { agents: string[]; confidence: number },
+  complexity: 'low' | 'medium' | 'high',
+): { agents: string[]; confidence: number } {
+  if (complexity !== 'low') return result;
+  if (result.agents.length <= 1) return result;
+  if (result.agents.some(a => COMPLEXITY_DISCOUNT_PROTECTED_AGENTS.has(a))) return result;
+  return { agents: result.agents.slice(0, 1), confidence: result.confidence };
+}
+
+function suggestAgentsForTask(
+  task: string,
+  complexity: 'low' | 'medium' | 'high' = 'medium',
+): { agents: string[]; confidence: number } {
   const taskLower = task.toLowerCase();
 
   // Check static keyword patterns first
   for (const [pattern, result] of Object.entries(KEYWORD_PATTERNS)) {
     if (taskLower.includes(pattern)) {
-      return result;
+      return applyComplexityDiscount(result, complexity);
     }
   }
 
@@ -719,7 +746,7 @@ function suggestAgentsForTask(task: string): { agents: string[]; confidence: num
   }
 
   // Default fallback
-  return { agents: ['coder', 'researcher', 'tester'], confidence: 0.7 };
+  return applyComplexityDiscount({ agents: ['coder', 'researcher', 'tester'], confidence: 0.7 }, complexity);
 }
 
 function assessCommandRisk(command: string): { risk: string; level: number; warnings: string[] } {
@@ -1351,15 +1378,17 @@ export const hooksPreTask: MCPTool = {
     { const v = validateText(description, 'description'); if (!v.valid) return { success: false, error: v.error }; }
     if (filePath) { const v = validatePath(filePath, 'filePath'); if (!v.valid) return { success: false, error: v.error }; }
 
-    const suggestion = suggestAgentsForTask(description);
-
-    // Determine complexity
+    // Determine complexity first so the agent-count recommendation below can
+    // be scaled by it (Dream Cycle 2026-08-14) instead of derived solely from
+    // whichever KEYWORD_PATTERNS entry matched.
     const descLower = description.toLowerCase();
     const complexity: 'low' | 'medium' | 'high' = descLower.includes('complex') || descLower.includes('architecture') || description.length > 200
       ? 'high'
       : descLower.includes('simple') || descLower.includes('fix') || description.length < 50
         ? 'low'
         : 'medium';
+
+    const suggestion = suggestAgentsForTask(description, complexity);
 
     // Enhanced model routing with deterministic Tier-1 codemods (ADR-026, ADR-143)
     let modelRouting: Record<string, unknown> | undefined;
