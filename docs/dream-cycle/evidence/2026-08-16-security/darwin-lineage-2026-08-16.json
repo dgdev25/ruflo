@@ -1,0 +1,53 @@
+{
+  "fitnessWeights": {
+    "safety": 0.45,
+    "quality": 0.35,
+    "reviewability": 0.2
+  },
+  "generations": 1,
+  "candidatesThisGeneration": 3,
+  "lineage": [
+    {
+      "generation": 1,
+      "parent": "baseline (basename-only match, vulnerable)",
+      "label": "A-chosen-candidate (exact-match-for-path-like)",
+      "safety": 1,
+      "quality": 1,
+      "reviewabilityScore": 1,
+      "fitness": 1,
+      "attackBlocked": "5/5",
+      "legitPassed": "4/4",
+      "exactPathAllowlistPassed": "1/1"
+    },
+    {
+      "generation": 1,
+      "parent": "baseline (basename-only match, vulnerable)",
+      "label": "B-always-exact-match (no basename leniency at all)",
+      "safety": 1,
+      "quality": 1,
+      "reviewabilityScore": 0.9,
+      "fitness": 0.9800000000000001,
+      "attackBlocked": "5/5",
+      "legitPassed": "4/4",
+      "exactPathAllowlistPassed": "1/1"
+    },
+    {
+      "generation": 1,
+      "parent": "baseline (basename-only match, vulnerable)",
+      "label": "D-reject-all-path-like (no path-form commands permitted, ever)",
+      "safety": 1,
+      "quality": 0.5,
+      "reviewabilityScore": 0.85,
+      "fitness": 0.795,
+      "attackBlocked": "5/5",
+      "legitPassed": "4/4",
+      "exactPathAllowlistPassed": "0/1"
+    }
+  ],
+  "winner": "A-chosen-candidate (exact-match-for-path-like)",
+  "acceptedIntoCandidate": true,
+  "rejectedNotes": {
+    "B-always-exact-match": "Ties A on safety (fully blocks all 5 attack cases) but scores lower on quality: forces every bare-name allowlist to also be exact-string-matched, which is behaviorally identical to A for TODAY's in-repo callers (none rely on basename leniency for bare names either) but removes a documented, intentional convenience (basename equivalence for bare names) with no additional security benefit over A — A already closes the same attack surface. Rejected as unnecessarily broad for the fitness gained (0 marginal safety, minor quality/API-surface cost).",
+    "D-reject-all-path-like": "Ties A on safety but is STRICTLY worse on quality: it also rejects the exact-path-allowlist-entry case (`allowedCommands: [\"/usr/bin/git\"]`, command `/usr/bin/git`) that A and even baseline both correctly allow — a legitimate, explicit, high-precision allowlisting pattern. Rejected: no safety gain over A, real quality loss."
+  }
+}

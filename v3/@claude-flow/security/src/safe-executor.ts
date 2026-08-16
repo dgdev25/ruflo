@@ -217,16 +217,35 @@ export class SafeExecutor {
   /**
    * Validates a command against the allowlist.
    *
+   * Basename-only matching is intentionally restricted to bare command
+   * names (e.g. `'git'`). A path-like `command` (absolute, or otherwise
+   * containing a directory separator) must match an allowlist entry
+   * *exactly* — matching it by basename alone would let a caller pass
+   * `/tmp/attacker-controlled/git` and have it authorized on the strength
+   * of an allowlisted `'git'` entry, then handed to `execFile()` as-is.
+   * This is the same overmatch class as the exec-allowlist bypass fixed
+   * upstream in OpenClaw (CVE-2026-32973, GHSA-f8r2-vg7x-gh8m): the
+   * allowlist check and the string actually executed must agree on what
+   * "the command" is, not just its trailing path segment.
+   *
    * @param command - Command to validate
    * @throws SafeExecutorError if command is not allowed
    */
   private validateCommand(command: string): void {
     const basename = path.basename(command);
+    const isPathLike = command !== basename;
 
     // Check if command is allowed
     const isAllowed = this.config.allowedCommands.some(allowed => {
+      if (command === allowed) {
+        return true;
+      }
+      if (isPathLike) {
+        // Exact match only — see method doc.
+        return false;
+      }
       const allowedBasename = path.basename(allowed);
-      return command === allowed || basename === allowedBasename;
+      return basename === allowedBasename;
     });
 
     if (!isAllowed) {
@@ -462,14 +481,25 @@ export class SafeExecutor {
   /**
    * Checks if a command is allowed.
    *
+   * Mirrors `validateCommand`'s exact-match-for-path-like-input rule (see
+   * that method's doc) so this public query can't report `true` for a
+   * path the executor would actually reject.
+   *
    * @param command - Command to check
    * @returns True if command is allowed
    */
   isCommandAllowed(command: string): boolean {
     const basename = path.basename(command);
+    const isPathLike = command !== basename;
     return this.config.allowedCommands.some(allowed => {
+      if (command === allowed) {
+        return true;
+      }
+      if (isPathLike) {
+        return false;
+      }
       const allowedBasename = path.basename(allowed);
-      return command === allowed || basename === allowedBasename;
+      return basename === allowedBasename;
     });
   }
 

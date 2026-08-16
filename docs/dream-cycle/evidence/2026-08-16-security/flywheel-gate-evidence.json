@@ -1,0 +1,18 @@
+{
+  "$comment": "Mapped onto @metaharness/flywheel's default conjunctive PromotionRule (gate.js) from tonight's real bench-safe-executor-allowlist-bypass.mjs receipt. 'primary' = attack-block rate (1 - decisionBoundaryASR). 'noopRate' here is repurposed as false-allow rate (rate of wrongly-authorized attack cases) per the gate's own doc — 'a policy earns promotion by making the executor COMMIT more' maps to 'commit to REJECTING the attack cases, not silently allow them'. 'costPerWin' is not a meaningful dimension for a validation-logic fix (no latency/cost effect measured or claimed) so both sides are pinned to 0, making that clause trivially non-blocking rather than fabricating a cost delta. 'anchor' is the legitimate-usage pass rate as the anti-Goodhart guard — the fix must not have bought its safety score by breaking real usage.",
+  "candidate": {
+    "primary": 1.0,
+    "noopRate": 0.0,
+    "costPerWin": 0,
+    "regressed": false
+  },
+  "baseline": {
+    "primary": 0.0,
+    "noopRate": 1.0,
+    "costPerWin": 0
+  },
+  "anchor": {
+    "candidate": 1.0,
+    "baseline": 1.0
+  }
+}

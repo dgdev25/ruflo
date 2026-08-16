@@ -1,0 +1,55 @@
+{
+  "totalChecks": 12,
+  "passed": 12,
+  "failed": [],
+  "results": [
+    {
+      "name": "empty-allowlist-throws",
+      "ok": true
+    },
+    {
+      "name": "dangerous-command-in-allowlist-throws",
+      "ok": true
+    },
+    {
+      "name": "allow-commands-in-allowlist",
+      "ok": true
+    },
+    {
+      "name": "block-commands-not-in-allowlist",
+      "ok": true
+    },
+    {
+      "name": "isCommandAllowed-true-for-listed",
+      "ok": true
+    },
+    {
+      "name": "isCommandAllowed-false-for-unlisted",
+      "ok": true
+    },
+    {
+      "name": "allowCommand-then-isCommandAllowed-true",
+      "ok": true
+    },
+    {
+      "name": "createDevelopmentExecutor-allows-git-npm-node",
+      "ok": true
+    },
+    {
+      "name": "createReadOnlyExecutor-allows-git-cat-ls",
+      "ok": true
+    },
+    {
+      "name": "blocks-shell-metacharacter-args",
+      "ok": true
+    },
+    {
+      "name": "blocks-null-byte-args",
+      "ok": true
+    },
+    {
+      "name": "sudo-blocked-via-allowSudo-false",
+      "ok": true
+    }
+  ]
+}

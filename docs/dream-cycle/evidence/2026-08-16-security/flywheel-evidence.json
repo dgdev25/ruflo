@@ -1,0 +1,84 @@
+{
+  "cycleDate": "2026-08-16",
+  "deepSurface": "security",
+  "scanSurfaces": ["intelligence", "swarm"],
+  "provenanceClassifiedEvidence": [
+    {
+      "type": "OBSERVATION",
+      "claim": "SafeExecutor.validateCommand()/isCommandAllowed() authorize a command string based on path.basename() equality against the allowlist, with no requirement that a path-like command string match an allowlist entry exactly.",
+      "source": "manual code read of v3/@claude-flow/security/src/safe-executor.ts (HEAD) lines 223-248, 468-474"
+    },
+    {
+      "type": "OBSERVATION",
+      "claim": "OpenClaw (a comparable agentic tool) shipped and fixed a CVSS 9.8 exec-allowlist-bypass vulnerability in the same class (allowlist pattern-matching overmatches the intended scope) in 2026, CVE-2026-32973 / GHSA-f8r2-vg7x-gh8m; Cursor shipped a related terminal-allowlist bypass fix, CVE-2026-22708 / GHSA-82wg-qcm4-fp2w.",
+      "source": "WebSearch + WebFetch tonight: https://www.vulncheck.com/advisories/openclaw-exec-allowlist-pattern-overmatch-via-posix-path-normalization , https://github.com/openclaw/openclaw/security/advisories/GHSA-f8r2-vg7x-gh8m , https://github.com/cursor/cursor/security/advisories/GHSA-82wg-qcm4-fp2w — grade A (official GitHub Security Advisories, cross-checked against VulnCheck/NVD listings for CVE-2026-32973)"
+    },
+    {
+      "type": "MEASUREMENT",
+      "claim": "Baseline (git HEAD) decision-boundary ASR against a 5-case basename-collision corpus = 100% (5/5 authorized). Candidate ASR = 0% (0/5). Legitimate bare-name usage pass rate unchanged at 100% (4/4) on both. Real end-to-end proof-of-exploit: baseline actually executes a planted sentinel binary at a spoofed path; candidate throws COMMAND_NOT_ALLOWED before spawning it.",
+      "source": "docs/dream-cycle/evidence/2026-08-16-security/receipt-2026-08-16.json (self-contained, git-reproducible: `node --experimental-transform-types bench-safe-executor-allowlist-bypass.mjs`)"
+    },
+    {
+      "type": "MEASUREMENT",
+      "claim": "12/12 manually-reconstructed assertions from the repo's own __tests__/safe-executor.test.ts pass against the candidate (empty-allowlist, dangerous-command-in-allowlist, argument injection patterns, sudo blocking, factory functions all unaffected).",
+      "source": "docs/dream-cycle/evidence/2026-08-16-security/regression-receipt-2026-08-16.json"
+    },
+    {
+      "type": "MEASUREMENT",
+      "claim": "Bounded 1-generation/3-variant exploration confirms the shipped fix (Variant A) is the fitness-maximizing formulation among 3 real, independently-executed alternatives (fitness 1.00 vs 0.98 vs 0.795).",
+      "source": "docs/dream-cycle/evidence/2026-08-16-security/darwin-lineage-2026-08-16.json"
+    },
+    {
+      "type": "INFERENCE",
+      "claim": "Any future caller in this repo or a downstream plugin that derives a `command` string dynamically (from a resolved PATH lookup, a config file, or any value not a compile-time string literal) and passes it to a bare-name-allowlisted SafeExecutor would, pre-fix, be exploitable by anything able to influence that derivation to point at an attacker-controlled path.",
+      "basis": "no current in-repo caller does this (confirmed by grep across v3/ for SafeExecutor construction/usage), so this is a defense-in-depth closure of a latent bypass surface in a documented, reusable security primitive — not a fix for an actively-exploited path in this checkout tonight."
+    },
+    {
+      "type": "HYPOTHESIS",
+      "claim": "Requiring exact-match for any path-like `command` string (while preserving basename leniency for bare names) eliminates the basename-collision bypass class with zero regression to today's real callers.",
+      "status": "confirmed by MEASUREMENT above"
+    },
+    {
+      "type": "DECISION",
+      "claim": "Ship Variant A, scoped to v3/@claude-flow/security/src/safe-executor.ts only (validateCommand + isCommandAllowed).",
+      "rationale": "highest Darwin-scored fitness among real, executed alternatives; smallest diff that fully closes the demonstrated bypass with no compatibility loss versus real (grep-confirmed) callers"
+    },
+    {
+      "type": "REJECTION",
+      "claim": "Variant B (always-exact-match, drop basename leniency even for bare names)",
+      "rationale": "ties Variant A on safety (5/5 attack cases blocked) but offers zero marginal security benefit while removing a documented convenience with no in-repo caller depending on it either way — strictly dominated by A on fitness (0.98 vs 1.00)."
+    },
+    {
+      "type": "REJECTION",
+      "claim": "Variant D (reject all path-like commands outright, even exact allowlist matches)",
+      "rationale": "ties Variant A on safety but breaks the legitimate exact-path-allowlist-entry pattern (`allowedCommands: ['/usr/bin/git']` + command `/usr/bin/git`) that both baseline and Variant A correctly allow — real quality loss for no safety gain (fitness 0.795)."
+    }
+  ],
+  "rewardHackCheck": {
+    "toolingAvailable": false,
+    "toolingNote": "npx ruvector harness --help (STEP 0.5, tonight) exposes status/doctor/route/flywheel/darwin only — no standalone reward-hack-detection subcommand. @metaharness/weight-eft loads as a harness capability per `harness doctor` but is not exposed as an invokable CLI surface for auditing a hand-written diff (same gap noted in 2026-08-15's evidence).",
+    "manualChecklist": "see adversarial-critique.md — full STEP 11 checklist executed manually, verdict: no unresolved signal",
+    "signal": "none"
+  },
+  "flywheelGate": {
+    "toolUsed": "npx ruvector harness flywheel gate <evidence.json>",
+    "evidenceFile": "docs/dream-cycle/evidence/2026-08-16-security/flywheel-gate-evidence.json",
+    "realOutput": { "promote": true, "reasons": [] },
+    "note": "Metrics mapped onto the tool's generic (primary/noopRate/costPerWin/regressed/anchor) schema per flywheel-gate-evidence.json's own $comment — this is advisory evidence per STEP 14, not autonomous promotion."
+  },
+  "flywheelVerify": {
+    "attempted": true,
+    "command": "npx ruvector harness flywheel verify receipt-2026-08-16.json",
+    "result": "errored — TypeError reading chain.length; @metaharness/flywheel's replay.js expects a signed { chain: Receipt[] } bundle produced by a full metaharness-scaffolded harness with a receipt-signing pipeline. This repo (ruflo, an application repo) is not scaffolded that way for arbitrary source-code candidates, and no such bundle exists for tonight's (or, per the prior 3 nights' own flywheel-evidence.json files, ANY prior night's) candidate.",
+    "implication": "STEP 13.1's cryptographic-replay reproducibility bar is not met; the weaker but real reproducibility guarantee that IS met is: every measurement is produced by a checked-in, deterministic, git-diffable script (bench-safe-executor-allowlist-bypass.mjs, darwin-explore.mjs, regression-check.mjs) that any reviewer can re-run bit-for-bit. Disclosed as a caveat on tonight's verdict rather than silently treated as satisfied."
+  },
+  "securityReview": {
+    "sensitivity": "high",
+    "notes": "This candidate IS the security-sensitive surface — SafeExecutor is @claude-flow/security's documented command-injection remediation primitive (CLAUDE.md: 'SafeExecutor — Command injection protection'), used in v3/@claude-flow/cli/src/proxy/{install,release}.ts for real subprocess execution (tar/powershell/gh extraction of downloaded release archives). The fix narrows an authorization check (fail-closed direction: previously-allowed inputs become rejected, never the reverse) — the safer direction for a security control to move in. No new filesystem, network, or credential surface is touched; no MCP tool authority is granted or changed. The .harness/mcp-policy.json posture (defaultDeny, allowShell:false at the MCP layer) is unaffected since this fix lives entirely in the native-Claude-Code-reachable @claude-flow/security package, outside MCP-tool jurisdiction."
+  },
+  "commitIdentity": {
+    "sessionCommit": "fca26153048a87511d1e9a22b269bcbc615ac129",
+    "branch": "claude/practical-gauss-wru5y3"
+  },
+  "witnessIdentity": "see docs/dream-cycle/2026-08-16-security-sota.md § SOTA Proof & Witness"
+}
