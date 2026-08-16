@@ -1,0 +1,161 @@
+{
+  "summary": {
+    "date": "2026-08-16",
+    "corpus": {
+      "attackCases": 5,
+      "legitimateCases": 5
+    },
+    "decisionBoundaryASR": {
+      "baseline": 1,
+      "candidate": 0
+    },
+    "legitimateUsagePassRate": {
+      "baseline": 1,
+      "candidate": 1
+    },
+    "endToEndExploit": {
+      "baselineExploited": true,
+      "candidateExploited": false
+    },
+    "anyLegitimateRegression": false
+  },
+  "decisionBoundary": [
+    {
+      "name": "absolute-path-basename-spoof",
+      "allowlist": [
+        "git"
+      ],
+      "command": "/tmp/attacker-controlled/git",
+      "baselineAllowed": true,
+      "candidateAllowed": false,
+      "fixed": true
+    },
+    {
+      "name": "relative-dotslash-basename-spoof",
+      "allowlist": [
+        "npm"
+      ],
+      "command": "./attacker-dir/npm",
+      "baselineAllowed": true,
+      "candidateAllowed": false,
+      "fixed": true
+    },
+    {
+      "name": "parent-traversal-basename-spoof",
+      "allowlist": [
+        "tar"
+      ],
+      "command": "../../tmp/attacker/tar",
+      "baselineAllowed": true,
+      "candidateAllowed": false,
+      "fixed": true
+    },
+    {
+      "name": "trailing-slash-bare-name-mutation",
+      "allowlist": [
+        "git"
+      ],
+      "command": "git/",
+      "baselineAllowed": true,
+      "candidateAllowed": false,
+      "fixed": true
+    },
+    {
+      "name": "nested-path-basename-spoof",
+      "allowlist": [
+        "powershell"
+      ],
+      "command": "/opt/evil/nested/dir/powershell",
+      "baselineAllowed": true,
+      "candidateAllowed": false,
+      "fixed": true
+    }
+  ],
+  "legitimate": [
+    {
+      "name": "bare-git",
+      "allowlist": [
+        "git"
+      ],
+      "command": "git",
+      "baselineAllowed": true,
+      "candidateAllowed": true,
+      "regressed": false
+    },
+    {
+      "name": "bare-npm",
+      "allowlist": [
+        "npm"
+      ],
+      "command": "npm",
+      "baselineAllowed": true,
+      "candidateAllowed": true,
+      "regressed": false
+    },
+    {
+      "name": "bare-tar",
+      "allowlist": [
+        "tar"
+      ],
+      "command": "tar",
+      "baselineAllowed": true,
+      "candidateAllowed": true,
+      "regressed": false
+    },
+    {
+      "name": "bare-powershell",
+      "allowlist": [
+        "powershell",
+        "powershell.exe"
+      ],
+      "command": "powershell",
+      "baselineAllowed": true,
+      "candidateAllowed": true,
+      "regressed": false
+    },
+    {
+      "name": "exact-path-explicitly-allowlisted",
+      "allowlist": [
+        "/usr/bin/git"
+      ],
+      "command": "/usr/bin/git",
+      "baselineAllowed": true,
+      "candidateAllowed": true,
+      "regressed": false
+    }
+  ],
+  "knownBehaviorChange": [
+    {
+      "name": "resolved-absolute-path-matching-bare-allowlist-basename",
+      "allowlist": [
+        "node"
+      ],
+      "command": "/opt/node22/bin/node",
+      "baselineAllowed": true,
+      "candidateAllowed": false,
+      "note": "Deliberate: closing the bypass necessarily also closes this same-shaped legitimate pattern. Caller must add the literal resolved path to the allowlist instead of relying on basename leniency."
+    }
+  ],
+  "endToEnd": [
+    {
+      "name": "baseline-spoofed-git-execute",
+      "exploited": true,
+      "error": null
+    },
+    {
+      "name": "candidate-spoofed-git-execute",
+      "exploited": false,
+      "error": "COMMAND_NOT_ALLOWED"
+    },
+    {
+      "name": "baseline-bare-echo-execute",
+      "exitCode": 0,
+      "stdoutTrimmed": "dream-cycle-2026-08-16"
+    },
+    {
+      "name": "candidate-bare-echo-execute",
+      "exitCode": 0,
+      "stdoutTrimmed": "dream-cycle-2026-08-16"
+    }
+  ]
+}
