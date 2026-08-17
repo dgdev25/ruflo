@@ -1,0 +1,18 @@
+{
+  "$comment": "Mapped onto @metaharness/flywheel's default conjunctive PromotionRule (meetsPromotionRule) from tonight's real bench-ewc-fisher-ema-inversion.mjs receipt, following the same honest-mapping convention as 2026-08-16's flywheel-gate-evidence.json. 'primary' = 20-step historical-signal retention fraction (higher = EWC doing its job of protecting old knowledge). 'noopRate' is repurposed as (1 - retention) = fraction of accumulated Fisher history a single call discards -- the harm this bug causes. 'costPerWin' is not a meaningful dimension for this fix (no latency/cost effect measured or claimed, same O(dims) loop either way) so both sides are pinned to 0, making that clause trivially non-blocking rather than fabricating a cost delta. 'anchor' is the productionPathUnchanged safety check from tonight's Darwin lineage (does the fix leave computeFisherMatrix()/recordGradient() -- the two call sites actually wired into hooks-tools.ts/intelligence.ts -- byte-identical?) as the anti-Goodhart guard: the fix must not have bought its retention score by breaking the methods already in production.",
+  "candidate": {
+    "primary": 0.8179069493110185,
+    "noopRate": 0.1820930506889815,
+    "costPerWin": 0,
+    "regressed": false
+  },
+  "baseline": {
+    "primary": 9.113928632127055e-10,
+    "noopRate": 0.9999999990886071,
+    "costPerWin": 0
+  },
+  "anchor": {
+    "candidate": 1.0,
+    "baseline": 1.0
+  }
+}

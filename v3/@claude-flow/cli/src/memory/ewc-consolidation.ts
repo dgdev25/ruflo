@@ -527,7 +527,13 @@ export class EWCConsolidator {
    * Called by SONA after distillLearning to track which patterns
    * are important and should be protected from forgetting.
    *
-   * Uses online averaging: F_new = alpha * F_old + (1-alpha) * F_current
+   * Uses online averaging: F_new = (1-alpha) * F_old + alpha * F_current
+   * (same convention as computeFisherMatrix()/recordGradient() for the
+   * same `fisherDecayRate` config field — see dream-cycle 2026-08-17
+   * evidence: this method previously blended with the two weights
+   * swapped, so a small `fisherDecayRate` — intended as a slow, stable
+   * accumulation rate — instead discarded ~(1-alpha) of accumulated
+   * history on every single call.)
    *
    * @param confidenceChanges - Array of {id, embedding, oldConf, newConf}
    */
@@ -562,9 +568,9 @@ export class EWCConsolidator {
       }
     }
 
-    // Online EMA: F_new = alpha * F_old + (1-alpha) * F_current
+    // Online EMA: F_new = (1-alpha) * F_old + alpha * F_current
     for (let i = 0; i < this.config.dimensions; i++) {
-      this.globalFisher[i] = alpha * this.globalFisher[i] + (1 - alpha) * currentFisher[i];
+      this.globalFisher[i] = (1 - alpha) * this.globalFisher[i] + alpha * currentFisher[i];
     }
 
     this.saveToDisk();

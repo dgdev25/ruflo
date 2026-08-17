@@ -1,0 +1,37 @@
+{
+  "generation": 1,
+  "maxGenerations": 3,
+  "maxCandidatesPerGeneration": 4,
+  "candidatesThisGeneration": 2,
+  "frozenFitness": "0.35*quality + 0.20*success_rate + 0.15*latency + 0.10*cost_efficiency + 0.10*reproducibility + 0.10*safety",
+  "variants": [
+    {
+      "name": "A-shipped-fix-updateFisherFromConfidences",
+      "linesChanged": 2,
+      "retention": 0.8179069831204959,
+      "productionPathUnchanged": true,
+      "quality": 1,
+      "success_rate": 1,
+      "latency": 1,
+      "cost_efficiency": 1,
+      "reproducibility": 1,
+      "safety": 1,
+      "fitness": 1
+    },
+    {
+      "name": "B-flip-production-call-sites-instead",
+      "linesChanged": 2,
+      "retention": 2.525252525252525e-9,
+      "productionPathUnchanged": false,
+      "quality": 0,
+      "success_rate": 0,
+      "latency": 1,
+      "cost_efficiency": 1,
+      "reproducibility": 1,
+      "safety": 0,
+      "fitness": 0.35
+    }
+  ],
+  "winner": "A-shipped-fix-updateFisherFromConfidences",
+  "verdict": "Winner A-shipped-fix-updateFisherFromConfidences (fitness 1.0000). Variant B does NOT fix updateFisherFromConfidences()'s own retention (measured 2.525e-9, essentially unchanged from the baseline bug — it only touches the OTHER two methods, never the one under test) AND fails the safety dimension: it changes computeFisherMatrix()/recordGradient()'s output for identical inputs relative to baseline (productionPathUnchanged=false), silently altering the behavior of the two call sites ALREADY wired into hooks-tools.ts/intelligence.ts in production. Variant A (measured retention 0.817907, target ~0.818) fixes the actual method under test while touching zero production-wired call sites (zero production callers of updateFisherFromConfidences, confirmed via grep). B rejected on both quality and safety."
+}

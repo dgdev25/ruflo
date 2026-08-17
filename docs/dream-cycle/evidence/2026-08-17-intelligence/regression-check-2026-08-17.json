@@ -1,0 +1,15 @@
+{
+  "purpose": "Manual assertion-by-assertion verification of v3/@claude-flow/cli/__tests__/ewc-consolidation.fisher-ema.test.ts against the real (candidate) EWCConsolidator class, since this checkout has no node_modules anywhere (root/v3/v3-cli) and vitest cannot run tonight. This is a real but strictly weaker substitute for the actual suite — a human reviewer or CI must run `npm install && npm test` in v3/@claude-flow/cli before merge.",
+  "method": "node --experimental-strip-types, importing v3/@claude-flow/cli/src/memory/ewc-consolidation.ts directly and hand-executing each test's assertions against the real class.",
+  "assertions": [
+    { "test": "single-call matches (1-alpha)*0+alpha*new", "measured": 1, "expected": 1, "pass": true },
+    { "test": "20-step retention > 0.7", "measured": 0.8179069831204959, "pass": true },
+    { "test": "20-step retention close to (1-alpha)^20", "measured": 0.8179069831204959, "expected": 0.8179069375972308, "deltaAbs": 4.55e-8, "pass": true },
+    { "test": "getPenalty > 0", "measured": true, "pass": true },
+    { "test": "computeConfidencePenalty >= 0", "measured": true, "pass": true },
+    { "test": "computeFisherMatrix[0] == 2.5", "measured": 2.5, "expected": 2.5, "pass": true },
+    { "test": "computeFisherMatrix[1] == 0.5", "measured": 0.5, "expected": 0.5, "pass": true },
+    { "test": "recordGradient does not throw", "measured": true, "pass": true }
+  ],
+  "result": "8/8 pass"
+}
