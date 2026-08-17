@@ -1,0 +1,33 @@
+{
+  "hypothesis": "EWCConsolidator.updateFisherFromConfidences() blends globalFisher with alpha*old+(1-alpha)*new (alpha=fisherDecayRate, default 0.01) while the two production-wired call sites (computeFisherMatrix()/recordGradient(), same config field, same globalFisher state) use (1-decay)*old+decay*new. Swapping the weights in updateFisherFromConfidences() to match should raise 20-step historical-signal retention from near-zero to ~(1-alpha)^20 while leaving getPenalty()/computeConfidencePenalty()/computeFisherMatrix()/recordGradient() byte-identical.",
+  "baseline": "git show HEAD:v3/@claude-flow/cli/src/memory/ewc-consolidation.ts (session commit fca26153048a87511d1e9a22b269bcbc615ac129, pre-candidate-edit)",
+  "candidate": "working tree v3/@claude-flow/cli/src/memory/ewc-consolidation.ts (updateFisherFromConfidences EMA weights swapped)",
+  "method": "node --experimental-strip-types docs/dream-cycle/evidence/2026-08-17-intelligence/bench-ewc-fisher-ema-inversion.mjs (dependency-free, no node_modules anywhere in this checkout — 5th consecutive Dream Cycle to hit this gap)",
+  "measurements": {
+    "firstCallDivergence": {
+      "baselineMaxFisher": 99,
+      "candidateMaxFisher": 1,
+      "analyticalExpectedCandidateMax": 1,
+      "analyticalExpectedBaselineMax": 99,
+      "note": "Single call on zero-init state: baseline (buggy) collapses to ~99% of the raw new signal in one shot; candidate (fixed) takes only a 1% step, matching the analytical (1-alpha)*0+alpha*100 formula exactly."
+    },
+    "twentyStepRetention": {
+      "baselineRetentionFraction": 9.113928632127055e-10,
+      "candidateRetentionFraction": 0.8179069493110185,
+      "analyticalExpectedRetention": 0.8179069375972308,
+      "note": "Candidate matches the analytically-derived (1-alpha)^20 retention to 7 significant digits, independently computed outside the class under test. Baseline retains effectively none of the original signal after 20 subsequent small-magnitude calls — the update it's documented to serve (SONA protecting historically-important patterns from forgetting) would be defeated on first real use."
+    },
+    "regressionGuard": {
+      "identical": true,
+      "methodsChecked": ["getPenalty", "computeConfidencePenalty", "computeFisherMatrix", "recordGradient"],
+      "note": "All four unrelated methods produce byte-identical output baseline vs candidate for identical inputs — confirms the fix's blast radius is exactly the one line changed."
+    }
+  },
+  "verdict": "ACCEPT",
+  "caveats": [
+    "updateFisherFromConfidences() has zero current production call sites (grep across v3/ confirms only ewc-consolidation.ts itself references it) — its own docstring documents it as the intended SONA distillLearning integration point, but that wiring does not exist yet. This fix corrects a latent contract inconsistency before it activates, not an active production bug tonight.",
+    "This checkout has no installed dependencies anywhere (root, v3/, v3/@claude-flow/cli/ node_modules all absent) — 5th consecutive Dream Cycle night blocked from the real vitest suite. The candidate file has zero external imports so --experimental-strip-types ran the actual TypeScript class directly (not a syntax-only check), same class of exception as 2026-08-15's PR.",
+    "No existing unit test file covered ewc-consolidation.ts before tonight (confirmed via search). This PR adds v3/@claude-flow/cli/__tests__/ewc-consolidation.fisher-ema.test.ts, written to the repo's real vitest conventions, but vitest itself was NOT run tonight (see prior caveat) — its 3 test cases / 8 assertions were instead hand-executed against the real class via node --experimental-strip-types and all passed; see regression-check-2026-08-17.json. A human reviewer or CI must still run the real vitest suite before merge.",
+    "CORRECTION (found by the independent adversarial critic, not the original author): an earlier draft of this receipt claimed a test file had already been added at the time the receipt was first written — it had not been yet. The test file above was added afterward, in direct response to that finding, and its assertions were then verified as described. Disclosed here rather than silently backfilled."
+  ]
+}

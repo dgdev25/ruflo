@@ -1,0 +1,14 @@
+{
+  "pass": false,
+  "checks": {
+    "receipts": false,
+    "reachesRoot": false,
+    "contiguousParents": false,
+    "allPromoted": true,
+    "gateUnchanged": true,
+    "gateReExecutes": true
+  },
+  "failures": ["receipts", "reachesRoot", "contiguousParents"],
+  "chainSummary": "",
+  "note": "npx ruvector harness flywheel verify against a dummy {chain:[]} bundle, same expected-fail pattern as all 4 prior Dream Cycle nights: this application repo does not produce a signed {chain: Receipt[]} replay bundle from a metaharness-scaffolded harness for arbitrary source patches. Disclosed as a reproducibility caveat, not hidden. flywheel gate (the promotion-rule advisory, a different tool) DID run for real -- see flywheel-gate-evidence.json / flywheel-gate-output.json."
+}

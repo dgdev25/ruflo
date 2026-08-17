@@ -1,0 +1,36 @@
+{
+  "hypothesis": {
+    "type": "HYPOTHESIS",
+    "content": "EWCConsolidator.updateFisherFromConfidences() should use (1-alpha)*old+alpha*new for globalFisher, matching computeFisherMatrix()/recordGradient()'s convention for the same fisherDecayRate field, so that historical Fisher signal is retained at a rate consistent with the other two update paths instead of being discarded almost entirely on every call."
+  },
+  "observations": [
+    { "type": "OBSERVATION", "content": "updateFisherFromConfidences() blends globalFisher = alpha*old + (1-alpha)*new; computeFisherMatrix()/recordGradient() blend globalFisher = (1-decay)*old + decay*new, for the same config field fisherDecayRate (default 0.01)." },
+    { "type": "OBSERVATION", "content": "grep -rn \"updateFisherFromConfidences\" v3/ has exactly one hit (the definition) -- zero production callers tonight." },
+    { "type": "OBSERVATION", "content": "No prior unit test file covered ewc-consolidation.ts." }
+  ],
+  "measurements": [
+    { "type": "MEASUREMENT", "content": "First-call: baseline maxFisherValue=99, candidate=1, matching analytical (1-alpha)*0+alpha*100=1 exactly.", "source": "bench-ewc-fisher-ema-inversion.mjs" },
+    { "type": "MEASUREMENT", "content": "20-step retention: baseline=9.11e-10, candidate=0.8179069493110185, analytical (1-alpha)^20=0.8179069375972308 (matches to 7 sig figs).", "source": "bench-ewc-fisher-ema-inversion.mjs, independently re-derived by the adversarial critic with a different script/vectors/alpha values" },
+    { "type": "MEASUREMENT", "content": "Regression guard: getPenalty/computeConfidencePenalty/computeFisherMatrix/recordGradient byte-identical baseline vs candidate.", "source": "bench-ewc-fisher-ema-inversion.mjs" },
+    { "type": "MEASUREMENT", "content": "8/8 hand-executed assertions from ewc-consolidation.fisher-ema.test.ts pass against the real class (vitest itself not runnable -- no node_modules anywhere in this checkout).", "source": "regression-check-2026-08-17.json" },
+    { "type": "MEASUREMENT", "content": "detectRewardHack (@metaharness/weight-eft, real import) on tonight's representative tool-call trajectory: 0 findings, clean.", "source": "reward-hack-evidence.json" },
+    { "type": "MEASUREMENT", "content": "npx ruvector harness flywheel gate: {promote:true, reasons:[]} against an honestly-mapped evidence file.", "source": "flywheel-gate-output.json" }
+  ],
+  "inferences": [
+    { "type": "INFERENCE", "content": "The default fisherDecayRate=0.01 only makes semantic sense under the (1-decay)*old+decay*new convention (99% history retained per step, matching EWC++ literature and the field's own doc comment 'Decay rate for online Fisher updates'); under the swapped reading it means 99% of history discarded per call, contradicting EWC's purpose." },
+    { "type": "INFERENCE", "content": "Because updateFisherFromConfidences() has zero current callers, tonight's fix has zero measurable production blast radius today -- it corrects a latent contract inconsistency in a public, documented API before it activates." }
+  ],
+  "decisions": [
+    { "type": "DECISION", "content": "Ship Variant A (swap updateFisherFromConfidences()'s own weights to match its 2 siblings) rather than Variant B (flip the 2 production-wired siblings to match updateFisherFromConfidences() instead) -- Darwin lineage fitness 1.0 vs 0.35, Variant B fails both quality (doesn't fix the method under test) and safety (silently changes computeFisherMatrix()/recordGradient()'s production-relied-upon output)." },
+    { "type": "DECISION", "content": "Add v3/@claude-flow/cli/__tests__/ewc-consolidation.fisher-ema.test.ts in direct response to the adversarial critic flagging a premature 'test file added' claim in an earlier receipt draft; corrected the receipt to disclose the sequence rather than silently backfill it." }
+  ],
+  "rejections": [
+    { "type": "REJECTION", "content": "Variant B (flip computeFisherMatrix()/recordGradient() instead of updateFisherFromConfidences()) -- fitness 0.35, rejected: quality=0 (measured retention of the method under test unchanged at 2.5e-9, essentially still broken) and safety=0 (changes the 2 production-wired call sites' output for identical inputs vs baseline)." }
+  ],
+  "provenance": "commit fca26153048a87511d1e9a22b269bcbc615ac129, session witnessed below",
+  "critic_verdict": "CONFIRMED (independent adversarial subagent, see adversarial-critique.md)",
+  "reward_hack_result": "clean (real detector + manual checklist, see reward-hack-evidence.json)",
+  "flywheel_gate_result": { "promote": true, "reasons": [] },
+  "flywheel_verify_result": "expected-fail (no signed replay chain for arbitrary source patches -- see flywheel-verify-output.json), same limitation as all 4 prior Dream Cycle nights",
+  "darwin_lineage_summary": "1 generation, 2 real independently-executed variants, frozen fitness (see darwin-lineage-2026-08-17.json). Winner: Variant A (fitness 1.0)."
+}
